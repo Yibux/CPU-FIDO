@@ -1,0 +1,89 @@
+name: fido-passkeys-demo
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-fido}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fido}
+      POSTGRES_DB: ${POSTGRES_DB:-fido}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks: [app]
+    # Port 5432 celowo NIE jest wystawiony na hosta (patrz docker-compose.override.example.yml).
+
+  api:
+    build: ./api
+    restart: unless-stopped
+    environment:
+      PORT: 3000
+      RP_ID: ${RP_ID:-localhost}
+      RP_NAME: ${RP_NAME:-FIDO2 Passkeys Demo}
+      ORIGIN: ${ORIGIN:-http://localhost:8080}
+      SESSION_SECRET: ${SESSION_SECRET:-dev-only-secret-change-me}
+      DATABASE_URL: postgres://${POSTGRES_USER:-fido}:${POSTGRES_PASSWORD:-fido}@db:5432/${POSTGRES_DB:-fido}
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    networks: [app]
+
+  web:
+    build: ./web
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks: [app]
+
+  # Publiczny adres HTTPS dla telefonów: docker compose --profile public up
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    profiles: [public]
+    restart: unless-stopped
+    command: tunnel --no-autoupdate --url http://web:80
+    depends_on:
+      web:
+        condition: service_healthy
+    networks: [app]
+
+  # Testy API na osobnej bazie: docker compose --profile test run --rm api-test
+  api-test:
+    profiles: [test]
+    build:
+      context: ./api
+      target: build
+    command: npm test
+    environment:
+      RP_ID: localhost
+      ORIGIN: http://localhost:8080
+      SESSION_SECRET: test-secret
+      DATABASE_URL: postgres://${POSTGRES_USER:-fido}:${POSTGRES_PASSWORD:-fido}@db:5432/${POSTGRES_DB:-fido}_test
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [app]
+
+networks:
+  app:
+
+volumes:
+  pgdata:

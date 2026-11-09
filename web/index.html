@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Passkeys demo · FIDO2 / WebAuthn</title>
+  </head>
+  <body>
+    <main>
+      <header>
+        <p class="eyebrow">FIDO2 · WebAuthn · CTAP</p>
+        <h1>Logowanie bez hasła</h1>
+        <p class="lead">
+          Testowe wdrożenie passkeys: Windows Hello, Android, iPhone oraz logowanie telefonem przez kod QR.
+        </p>
+      </header>
+
+      <div id="message" class="message" role="status" aria-live="polite" hidden></div>
+
+      <section id="auth" class="card" hidden>
+        <h2>Zaloguj się lub załóż konto</h2>
+        <form id="auth-form" novalidate>
+          <label for="username">Nazwa użytkownika</label>
+          <input
+            id="username"
+            name="username"
+            type="text"
+            autocomplete="username webauthn"
+            autocapitalize="none"
+            spellcheck="false"
+            maxlength="32"
+            placeholder="np. jan.kowalski"
+          />
+          <p class="hint">
+            Potrzebna tylko przy zakładaniu konta. Do logowania wystarczy passkey – kliknij w pole, aby
+            wybrać go z podpowiedzi przeglądarki.
+          </p>
+          <div class="actions">
+            <button type="button" id="btn-login" class="primary">Zaloguj się passkeyem</button>
+            <button type="submit" id="btn-register">Załóż konto z passkeyem</button>
+          </div>
+        </form>
+      </section>
+
+      <section id="panel" class="card" hidden>
+        <div class="panel-head">
+          <h2>Zalogowano jako <span id="me-name"></span></h2>
+          <button type="button" id="btn-logout">Wyloguj</button>
+        </div>
+        <h3>Twoje passkeys</h3>
+        <ul id="cred-list" class="cred-list"></ul>
+        <div class="actions">
+          <button type="button" id="btn-add" class="primary">Dodaj kolejny passkey</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>To urządzenie i przeglądarka</h2>
+        <ul id="support-list" class="support-list"></ul>
+        <p class="hint">Relying Party ID: <code id="rp-id">…</code></p>
+      </section>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
